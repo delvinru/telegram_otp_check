@@ -18,6 +18,7 @@ from lib.dbhelper import DBHelper
 import logging
 import sys
 from loguru import logger
+from threading import Thread
 
 
 def main():
@@ -64,6 +65,7 @@ def main():
         states={
             REGISTRATION: [start_reg],
             CHECK: [CallbackQueryHandler(check_user, pattern='^' + str(CHECK_USER) + '$')],
+            TYPING_OTP: [MessageHandler(Filters.text & ~Filters.command, check_otp_code)],
             STOPPING: [CommandHandler('start', start)]
         },
         fallbacks=[CommandHandler('stop', stop)]
@@ -76,12 +78,13 @@ def main():
 
     # Handlers for mumble
     dp.add_handler(
-        MessageHandler(
-            (Filters.text | Filters.sticker) & (
-                ~Filters.command),
-            mumble))
+        MessageHandler( (Filters.text | Filters.sticker) & (~Filters.command), mumble) 
+    )
 
-    # Start long polling, because we run programm in local
+    # Start otp_code updater
+    Thread(target=gui_for_showing_otp_code).start()
+
+    # Start long polling
     updater.start_polling()
     updater.idle()
 

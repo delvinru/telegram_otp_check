@@ -1,30 +1,34 @@
 # Telegram stuff
-from telegram import (
-    Update,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    KeyboardButton,
-    ReplyKeyboardMarkup
-)
+import random
+import string
+from datetime import datetime
+from random import choice
+from re import findall
+from time import sleep, time
+import tkinter as tk
 
+from loguru import logger
+from telegram import (
+    InlineKeyboardButton, 
+    InlineKeyboardMarkup,
+    KeyboardButton, 
+    ReplyKeyboardMarkup, 
+    Update
+)
 from telegram.ext import (
-    ConversationHandler,
+    CallbackContext, 
     CallbackQueryHandler,
-    CallbackContext
+    ConversationHandler
 )
 
 from lib.dbhelper import DBHelper
-from re import findall
-from datetime import datetime
-from time import time
-from loguru import logger
-from random import choice
-
 
 # State definitions for top level conversation
 REGISTRATION, LOCATION, CHECK = map(chr, range(3))
 # State definitions for registration conversation
 SELECTING_FEATURE, TYPING = map(chr, range(6, 8))
+# State definition for otp verification
+TYPING_OTP = chr(20)
 
 # Meta state
 STOPPING = map(chr, range(4, 5))
@@ -39,6 +43,9 @@ END = ConversationHandler.END
     START_OVER,
     CURRENT_FEATURE,
 ) = map(chr, range(10, 15))
+
+# VARIABLE FOR OTP CODE
+otp_code = ''.join([random.choice(string.ascii_lowercase) for _ in range(6)])
 
 # Init class DBhelper for work with db
 db = DBHelper()
@@ -70,13 +77,14 @@ def send_help(update: Update, cx: CallbackContext) -> None:
         text='Используй /start, чтобы начать взаимодействовать с ботом')
 
 
-def stop(update: Update, cx: CallbackContext) -> None:
+def stop(update: Update, cx: CallbackContext) -> int:
     update.message.reply_text(text='Хорошо, пока!')
     return END
 
 
-def start(update: Update, cx: CallbackContext) -> None:
+def start(update: Update, cx: CallbackContext) -> str:
     """Initialize main window"""
+    print(update)
 
     # Check user was init or not
     if cx.user_data.get(START_OVER):
@@ -129,6 +137,7 @@ def start(update: Update, cx: CallbackContext) -> None:
                 )
             ]]
             keyboard = InlineKeyboardMarkup(buttons)
+
             update.message.reply_text(text=text, reply_markup=keyboard)
 
             # Put info in context menu
@@ -286,9 +295,76 @@ def stop_check(update: Update, cx: CallbackContext) -> None:
 def check_user(update: Update, cx: CallbackContext) -> None:
     """Check is user exist in database"""
 
-    db.mark_user(cx.user_data['uid'])
-    logger.info(
-        f'{cx.user_data["uid"]} {cx.user_data["name"]} was marked in DB')
-    update.callback_query.edit_message_text(text='Поздравляю, ты на паре!☺️')
+    text = 'Введи код, который ты видешь в аудитории.'
+    update.callback_query.answer()
+    update.callback_query.edit_message_text(text=text)
 
-    return END
+    return TYPING_OTP
+
+def check_otp_code(update: Update, cx: CallbackContext) -> None:
+    """Functions check OTP code input by user and if correct mark him in DB"""
+
+    # Count failed tries
+    if not cx.user_data.get('otp_try'):
+        cx.user_data['otp_try'] = 0
+
+    user_text = update.message.text
+    global otp_code
+    if user_text == otp_code:
+        db.mark_user(cx.user_data['uid'])
+        logger.info(
+            f'{cx.user_data["uid"]} {cx.user_data["name"]} was marked in DB'
+        )
+        cx.bot.send_message(
+            chat_id=update.message.chat.id,
+            text='Поздравляю, ты отмечен на паре!☺️'
+        )
+
+        return END
+    else:
+        cx.user_data['otp_try'] += 1
+
+        if cx.user_data['otp_try'] >= 3:
+            logger.error(
+                f'{cx.user_data["uid"]} {cx.user_data["name"]} entered the password incorrectly more than 3 times. '
+                'You need to check its actual presence.'
+            )
+
+        logger.warning(
+            f'{cx.user_data["uid"]} {cx.user_data["name"]} try incorrect password'
+        )
+
+        cx.bot.send_message(
+            chat_id=update.message.chat.id,
+            text='Друг, а ты точно на паре?👿'
+        )
+        return start(update, cx)
+
+    
+def gui_for_showing_otp_code():
+    """Just gui for showing otp codes for peoples"""
+
+    def update_otp_code():
+        """Function run in Thread and update otp_code variable"""
+        while True:
+            sleep(10)
+            global otp_code
+            otp_code = ''.join([random.choice(string.ascii_lowercase) for _ in range(6)])
+            var.set(otp_code)
+            root.update()
+
+    global otp_code
+    root = tk.Tk()
+    root.attributes('-fullscreen', True)
+    root.title('Otp window')
+
+    var = tk.StringVar(value=otp_code)
+    label = tk.Label(root, textvariable=var)
+    label.config(font=('Courier New', 100))
+    label.place(relx=0.5, rely=0.5, anchor='center')
+    label.pack()
+
+    btn = tk.Button(root, text='otp', command=update_otp_code)
+    btn.pack()
+
+    root.mainloop()

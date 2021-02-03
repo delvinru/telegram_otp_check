@@ -1,3 +1,5 @@
 # Not include local database and logs
 db/*
 logs/*
+.vscode/*
+lib/__pycache__/*
