@@ -56,7 +56,7 @@ def main():
             CommandHandler('stop', stop_reg)
         ],
         map_to_parent={
-            END: CHECK
+            END: STOPPING
         },
     )
 
@@ -64,8 +64,7 @@ def main():
         entry_points=[CommandHandler('start', start)],
         states={
             REGISTRATION: [start_reg],
-            CHECK: [CallbackQueryHandler(check_user, pattern='^' + str(CHECK_USER) + '$')],
-            TYPING_OTP: [MessageHandler(Filters.text & ~Filters.command, check_otp_code)],
+            CHECK_OTP: [MessageHandler(Filters.text & ~Filters.command, check_otp_code)],
             STOPPING: [CommandHandler('start', start)]
         },
         fallbacks=[CommandHandler('stop', stop)]

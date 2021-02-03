@@ -1,11 +1,13 @@
 # Telegram stuff
-import random
-import string
+from os import urandom
+import hashlib
 from datetime import datetime
 from random import choice
 from re import findall
 from time import sleep, time
 import tkinter as tk
+from tkinter.constants import ANCHOR
+import qrcode
 
 from loguru import logger
 from telegram import (
@@ -28,7 +30,7 @@ REGISTRATION, LOCATION, CHECK = map(chr, range(3))
 # State definitions for registration conversation
 SELECTING_FEATURE, TYPING = map(chr, range(6, 8))
 # State definition for otp verification
-TYPING_OTP = chr(20)
+CHECK_OTP = chr(20)
 
 # Meta state
 STOPPING = map(chr, range(4, 5))
@@ -45,7 +47,9 @@ END = ConversationHandler.END
 ) = map(chr, range(10, 15))
 
 # VARIABLE FOR OTP CODE
-otp_code = ''.join([random.choice(string.ascii_lowercase) for _ in range(6)])
+otp_code = hashlib.md5(urandom(32)).hexdigest()
+# COUNTDOWN for OTP codes
+COUNTDOWN = 10
 
 # Init class DBhelper for work with db
 db = DBHelper()
@@ -84,25 +88,27 @@ def stop(update: Update, cx: CallbackContext) -> int:
 
 def start(update: Update, cx: CallbackContext) -> str:
     """Initialize main window"""
-    print(update)
 
     # Check user was init or not
     if cx.user_data.get(START_OVER):
         text = f'Привет, {cx.user_data["name"]}!\n'
-        text += 'Ты можешь отметиться на паре!'
-        buttons = [[
-            InlineKeyboardButton(
-                'Отметиться на паре', 
-                callback_data=str(CHECK_USER)
-            )
-        ]]
-        keyboard = InlineKeyboardMarkup(buttons)
 
-        update.callback_query.answer()
-        update.callback_query.edit_message_text(
-            text=text, reply_markup=keyboard)
+        try:
+            update.callback_query.answer()
+            update.callback_query.edit_message_text(text=text)
+        except:
+            update.message.reply_text(text)
 
-        return CHECK
+        try:
+            data = update.message.text
+        except:
+            # if code not proviced in /start than just end conversation or other shit
+            return END
+
+        code = data.removeprefix('/start ')
+        check_otp_code(update, cx, code)
+
+        return END
     else:
         user_id = update.message.from_user.id
         user = db.search_user(user_id)
@@ -116,7 +122,10 @@ def start(update: Update, cx: CallbackContext) -> str:
             text = 'Привет, это бот для учёта посещаемости студентов на парах.\n'
             text += "Чтобы начать регистрацию нажмите на кнопку ниже👇\n"
             text += "Вводите полное ФИО. Если вы опечатались, то данные можно поправить до нажатия кнопки 'Завершить регистрацию'\n"
-            text += "❗️❗️❗\n️Будьте внимательны, после её нажатия изменить свои данные нельзя.\nОбращайтесь к преподавателю или к разработчику.\n❗️❗️❗️"
+            text += "❗️❗️❗\n️Будьте внимательны, после её нажатия изменить свои данные нельзя.\nОбращайтесь к преподавателю.\n❗️❗️❗️"
+            text += "\n\n"
+            text += "Для того, чтобы отметиться на паре тебе достаточно отсканировать QR-код, который покажет преподаватель на доске."
+
 
             reply_markup = InlineKeyboardMarkup(keyboard)
             update.message.reply_text(
@@ -129,16 +138,8 @@ def start(update: Update, cx: CallbackContext) -> str:
         else:
             # user = (id, name)
             text = f'Привет, {user[1]}!\n'
-            text += 'Ты можешь отметиться на паре!'
-            buttons = [[
-                InlineKeyboardButton(
-                    'Отметиться на паре', 
-                    callback_data=str(CHECK_USER)
-                )
-            ]]
-            keyboard = InlineKeyboardMarkup(buttons)
 
-            update.message.reply_text(text=text, reply_markup=keyboard)
+            update.message.reply_text(text=text)
 
             # Put info in context menu
             cx.user_data['uid'] = user[0]
@@ -146,7 +147,16 @@ def start(update: Update, cx: CallbackContext) -> str:
 
             logger.info(f'User {user[0]} {user[1]} come to me')
 
-            return CHECK
+            try:
+                data = update.message.text
+            except:
+                # if code not proviced in /start than just end conversation or other shit
+                return END
+
+            code = data.removeprefix('/start ')
+            check_otp_code(update, cx, code)
+
+            return END
 
 ###
 # Functions that are required for user registration
@@ -292,29 +302,21 @@ def stop_check(update: Update, cx: CallbackContext) -> None:
     return END
 
 
-def check_user(update: Update, cx: CallbackContext) -> None:
-    """Check is user exist in database"""
-
-    text = 'Введи код, который ты видешь в аудитории.'
-    update.callback_query.answer()
-    update.callback_query.edit_message_text(text=text)
-
-    return TYPING_OTP
-
-def check_otp_code(update: Update, cx: CallbackContext) -> None:
+def check_otp_code(update: Update, cx: CallbackContext, code: str) -> None:
     """Functions check OTP code input by user and if correct mark him in DB"""
 
     # Count failed tries
     if not cx.user_data.get('otp_try'):
         cx.user_data['otp_try'] = 0
 
-    user_text = update.message.text
     global otp_code
-    if user_text == otp_code:
+    if code == otp_code:
+        # mark user in database
         db.mark_user(cx.user_data['uid'])
         logger.info(
             f'{cx.user_data["uid"]} {cx.user_data["name"]} was marked in DB'
         )
+        # send successfull message
         cx.bot.send_message(
             chat_id=update.message.chat.id,
             text='Поздравляю, ты отмечен на паре!☺️'
@@ -338,33 +340,46 @@ def check_otp_code(update: Update, cx: CallbackContext) -> None:
             chat_id=update.message.chat.id,
             text='Друг, а ты точно на паре?👿'
         )
-        return start(update, cx)
+
+        return END
 
     
 def gui_for_showing_otp_code():
-    """Just gui for showing otp codes for peoples"""
+    """Just GUI for showing otp codes for peoples"""
 
     def update_otp_code():
         """Function run in Thread and update otp_code variable"""
         while True:
-            sleep(10)
+            sleep(COUNTDOWN)
             global otp_code
-            otp_code = ''.join([random.choice(string.ascii_lowercase) for _ in range(6)])
-            var.set(otp_code)
+            otp_code = hashlib.md5(urandom(32)).hexdigest()
+
+            data = url + otp_code
+            img = qrcode.make(data)
+            img.save('qr/qr.png')
+
+            print('[+] Generate new code')
+
+            new_img = tk.PhotoImage(file='qr/qr.png')
+            canvas.itemconfig(img_id, image=new_img)
             root.update()
 
     global otp_code
     root = tk.Tk()
     root.attributes('-fullscreen', True)
-    root.title('Otp window')
+    root.title('OTP window')
 
-    var = tk.StringVar(value=otp_code)
-    label = tk.Label(root, textvariable=var)
-    label.config(font=('Courier New', 100))
-    label.place(relx=0.5, rely=0.5, anchor='center')
-    label.pack()
+    url = 'https://t.me/kks_checker_bot?start='
+    data = url + otp_code
+    img = qrcode.make(data)
+    img.save('qr/qr.png')
 
-    btn = tk.Button(root, text='otp', command=update_otp_code)
+    canvas = tk.Canvas(root, width=450, height=450)
+    canvas.pack()
+    img = tk.PhotoImage(file='qr/qr.png')
+    img_id = canvas.create_image((0, 0), anchor='nw', image=img)
+
+    btn = tk.Button(root, text='start generate OTP', command=update_otp_code)
     btn.pack()
 
     root.mainloop()
