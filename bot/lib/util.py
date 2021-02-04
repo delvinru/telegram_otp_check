@@ -47,6 +47,9 @@ END = ConversationHandler.END
     CURRENT_FEATURE,
 ) = map(chr, range(10, 15))
 
+# Global variable for checking otp_code and verification
+otp_code = hashlib.md5(urandom(32)).hexdigest()
+
 # Init class DBhelper for work with db
 db = DBHelper()
 
@@ -344,6 +347,7 @@ def update_otp_code():
     """Function run in Thread and update otp_code variable"""
 
     while True:
+        global otp_code
         otp_code = hashlib.md5(urandom(32)).hexdigest()
 
         data = BOT_URL + otp_code

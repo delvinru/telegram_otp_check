@@ -9,4 +9,4 @@ BOT_NAME = 'kks_checker_bot'
 BOT_URL = f'https://t.me/{BOT_NAME}?start='
 
 # REFRESH TIME FOR UPDATING QR CODE
-REFRESH_TIME = 10
+REFRESH_TIME = 13
