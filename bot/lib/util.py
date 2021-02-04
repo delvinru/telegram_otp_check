@@ -6,7 +6,7 @@ from random import choice
 from re import findall
 from time import sleep, time
 import tkinter as tk
-from tkinter.constants import ANCHOR
+from tkinter.constants import ANCHOR, TRUE
 import qrcode
 
 from loguru import logger
@@ -24,6 +24,7 @@ from telegram.ext import (
 )
 
 from lib.dbhelper import DBHelper
+from lib.settings import *
 
 # State definitions for top level conversation
 REGISTRATION, LOCATION, CHECK = map(chr, range(3))
@@ -46,17 +47,10 @@ END = ConversationHandler.END
     CURRENT_FEATURE,
 ) = map(chr, range(10, 15))
 
-# VARIABLE FOR OTP CODE
-otp_code = hashlib.md5(urandom(32)).hexdigest()
-# COUNTDOWN for OTP codes
-COUNTDOWN = 10
-
 # Init class DBhelper for work with db
 db = DBHelper()
 
 # Some basic function
-
-
 def mumble(update: Update, cx: CallbackContext) -> None:
     """If user not choice available options send 'i don't know' message"""
 
@@ -93,6 +87,7 @@ def start(update: Update, cx: CallbackContext) -> str:
     if cx.user_data.get(START_OVER):
         text = f'Привет, {cx.user_data["name"]}!\n'
 
+        # Sometimes this code got exception because message don't callback query
         try:
             update.callback_query.answer()
             update.callback_query.edit_message_text(text=text)
@@ -134,6 +129,9 @@ def start(update: Update, cx: CallbackContext) -> str:
             )
 
             cx.user_data["uid"] = user_id
+
+            logger.info(f'New user {user_id} came to registration menu.')
+
             return REGISTRATION
         else:
             # user = (id, name)
@@ -144,8 +142,6 @@ def start(update: Update, cx: CallbackContext) -> str:
             # Put info in context menu
             cx.user_data['uid'] = user[0]
             cx.user_data['name'] = user[1]
-
-            logger.info(f'User {user[0]} {user[1]} come to me')
 
             try:
                 data = update.message.text
@@ -344,42 +340,17 @@ def check_otp_code(update: Update, cx: CallbackContext, code: str) -> None:
         return END
 
     
-def gui_for_showing_otp_code():
-    """Just GUI for showing otp codes for peoples"""
+def update_otp_code():
+    """Function run in Thread and update otp_code variable"""
 
-    def update_otp_code():
-        """Function run in Thread and update otp_code variable"""
-        while True:
-            sleep(COUNTDOWN)
-            global otp_code
-            otp_code = hashlib.md5(urandom(32)).hexdigest()
+    while True:
+        otp_code = hashlib.md5(urandom(32)).hexdigest()
 
-            data = url + otp_code
-            img = qrcode.make(data)
-            img.save('qr/qr.png')
+        data = BOT_URL + otp_code
+        img = qrcode.make(data)
 
-            print('[+] Generate new code')
+        # Change this line if you edit folder name or other
+        img.save('../www/static/img/qr.png')
+        print('[+] Generate new code')
 
-            new_img = tk.PhotoImage(file='qr/qr.png')
-            canvas.itemconfig(img_id, image=new_img)
-            root.update()
-
-    global otp_code
-    root = tk.Tk()
-    root.attributes('-fullscreen', True)
-    root.title('OTP window')
-
-    url = 'https://t.me/kks_checker_bot?start='
-    data = url + otp_code
-    img = qrcode.make(data)
-    img.save('qr/qr.png')
-
-    canvas = tk.Canvas(root, width=450, height=450)
-    canvas.pack()
-    img = tk.PhotoImage(file='qr/qr.png')
-    img_id = canvas.create_image((0, 0), anchor='nw', image=img)
-
-    btn = tk.Button(root, text='start generate OTP', command=update_otp_code)
-    btn.pack()
-
-    root.mainloop()
+        sleep(REFRESH_TIME)

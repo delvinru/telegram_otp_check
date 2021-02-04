@@ -1,5 +1,6 @@
 # Imports for telegram API
 import telegram
+from telegram import update
 from telegram.ext import (
     Updater,
     MessageHandler,
@@ -8,7 +9,7 @@ from telegram.ext import (
 )
 # My libs
 # Put your telegram token in this file
-from lib.creds import *
+from lib.settings import *
 from lib.util import *
 
 # Libs for working with database
@@ -81,7 +82,7 @@ def main():
     )
 
     # Start otp_code updater
-    Thread(target=gui_for_showing_otp_code).start()
+    Thread(target=update_otp_code).start()
 
     # Start long polling
     updater.start_polling()
