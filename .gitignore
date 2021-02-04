@@ -1,5 +1,5 @@
 # Not include local database and logs
-bot/db/*
-bot/logs/*
+bot/db/*.sqlite
+bot/logs/*.log
 .vscode/*
 bot/lib/__pycache__/*
