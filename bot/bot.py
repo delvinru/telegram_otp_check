@@ -1,25 +1,18 @@
-# Imports for telegram API
-import telegram
-from telegram import update
-from telegram.ext import (
-    Updater,
-    MessageHandler,
-    CommandHandler,
-    Filters
-)
-# My libs
-# Put your telegram token in this file
-from lib.settings import *
-from lib.util import *
-
-# Libs for working with database
-from lib.dbhelper import DBHelper
-
 # Others import
 import logging
 import sys
-from loguru import logger
 from threading import Thread
+
+# Imports for telegram API
+import telegram
+from loguru import logger
+from telegram import update
+from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
+
+# My libs
+from lib.dbhelper import DBHelper
+from lib.settings import *
+from lib.util import *
 
 
 def main():

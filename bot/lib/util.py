@@ -1,15 +1,13 @@
-# Telegram stuff
-from os import urandom
 import hashlib
-from datetime import datetime
+from os import urandom
 from random import choice
 from re import findall
-from time import sleep, time
-import tkinter as tk
-from tkinter.constants import ANCHOR, TRUE
-import qrcode
+from time import sleep
 
+import qrcode
 from loguru import logger
+
+# Telegram stuff
 from telegram import (
     InlineKeyboardButton, 
     InlineKeyboardMarkup,
@@ -17,6 +15,7 @@ from telegram import (
     ReplyKeyboardMarkup, 
     Update
 )
+
 from telegram.ext import (
     CallbackContext, 
     CallbackQueryHandler,
@@ -25,6 +24,7 @@ from telegram.ext import (
 
 from lib.dbhelper import DBHelper
 from lib.settings import *
+
 
 # State definitions for top level conversation
 REGISTRATION, LOCATION, CHECK = map(chr, range(3))
