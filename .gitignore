@@ -3,3 +3,4 @@ bot/db/*.sqlite
 bot/logs/*.log
 .vscode/*
 bot/lib/__pycache__/*
+www/__pycache__/*

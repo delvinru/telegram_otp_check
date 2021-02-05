@@ -15,7 +15,6 @@ window.onload = function(){
     //making the canvas full screen
     c.height = window.innerHeight;
     c.width = window.innerWidth;
-    console.log(c.height, c.width);
 
     //chinese characters - taken from the unicode charset
     var matrix = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()*&^%+-/~{[|`]}";
@@ -36,7 +35,7 @@ window.onload = function(){
     {
         //Black BG for the canvas
         //translucent BG to show trail
-        ctx.fillStyle = "rgba(0, 0, 0, 0.04)";
+        ctx.fillStyle = "rgba(0, 0, 0, 0.03)";
         ctx.fillRect(0, 0, c.width, c.height);
 
         ctx.fillStyle = "#00ff00";//green text
