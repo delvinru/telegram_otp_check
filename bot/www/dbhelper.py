@@ -2,7 +2,7 @@ import sqlite3
 
 
 class DBHelper:
-    def __init__(self, dbname="../bot/db/students.sqlite"):
+    def __init__(self, dbname="../db/students.sqlite"):
         self.dbname = dbname
         self.conn = sqlite3.connect(dbname, check_same_thread=False)
         self.cursor = self.conn.cursor()

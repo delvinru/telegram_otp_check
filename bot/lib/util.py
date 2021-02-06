@@ -354,7 +354,7 @@ def update_otp_code():
         img = qrcode.make(data)
 
         # Change this line if you edit folder name or other
-        img.save('../www/static/img/qr.png')
+        img.save('www/static/img/qr.png')
         print('[+] Generate new code')
 
         sleep(REFRESH_TIME)

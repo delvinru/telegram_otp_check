@@ -2,6 +2,7 @@
 import logging
 import sys
 from threading import Thread
+import subprocess
 
 # Imports for telegram API
 import telegram
@@ -34,8 +35,7 @@ def main():
         ],
         states={
             SELECTING_FEATURE: [
-                CallbackQueryHandler(
-                    ask_for_input, pattern='^(name|group).*$'),
+                CallbackQueryHandler(ask_for_input, pattern='^(name|group).*$'),
                 CallbackQueryHandler(show_data, pattern='^show_data$')
             ],
             TYPING: [
@@ -76,6 +76,16 @@ def main():
 
     # Start otp_code updater
     Thread(target=update_otp_code).start()
+
+    # Start web server
+    subprocess.Popen(
+        "cd www/ && python3 server.py", 
+        shell=True, 
+        stdout=subprocess.DEVNULL, 
+        stderr=subprocess.DEVNULL, 
+        close_fds=True
+    )
+    logger.info("Web server started at http://127.0.0.1:8080/")
 
     # Start long polling
     updater.start_polling()
