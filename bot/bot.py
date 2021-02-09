@@ -79,13 +79,13 @@ def main():
 
     # Start web server
     subprocess.Popen(
-        "cd www/ && python3 server.py", 
+        f"cd www/ && python3 server.py {PORT}", 
         shell=True, 
         stdout=subprocess.DEVNULL, 
         stderr=subprocess.DEVNULL, 
         close_fds=True
     )
-    logger.info("Web server started at http://127.0.0.1:8080/")
+    logger.info(f"Web server started at http://127.0.0.1:{PORT}/")
 
     # Start long polling
     updater.start_polling()
@@ -101,5 +101,9 @@ if __name__ == "__main__":
         level="DEBUG",
         rotation="1 MB")
     logger.add(sys.__stdout__)
+
+    if TOKEN is None:
+        logger.error("export TOKEN_CHECKER_OS in environment")
+        exit(0)
 
     main()

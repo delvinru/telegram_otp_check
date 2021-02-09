@@ -1,7 +1,9 @@
+import sys
+
 from flask import Flask, request
 from flask.templating import render_template
+
 from dbhelper import DBHelper
-import sqlite3
 
 
 app = Flask(__name__)
@@ -32,4 +34,8 @@ def admin_page():
     return render_template("admin.html", table=False)
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=8080)
+    if len(sys.argv) <= 1:
+        print(f"Usage: ./{sys.argv[0]} <port>")
+        exit(0)
+    port = int(sys.argv[1])
+    app.run(host="127.0.0.1", port=port)
