@@ -1,5 +1,4 @@
 # Others import
-import logging
 import sys
 from threading import Thread
 import subprocess

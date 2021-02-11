@@ -74,12 +74,14 @@ def send_dev(update: Update, cx: CallbackContext) -> None:
 
 
 def send_help(update: Update, cx: CallbackContext) -> None:
-    update.message.reply_text(
-        text='Используй /start, чтобы начать взаимодействовать с ботом')
+    text =  "Используй /start, чтобы начать взаимодействовать с ботом\n"
+    text += "Если у вас возникли проблемы, пропишите команду /stop.\n"
+    text += "Если и это не помогло, обратитесь к преподавателю."
+    update.message.reply_text(text)
 
 
 def stop(update: Update, cx: CallbackContext) -> int:
-    update.message.reply_text(text='Хорошо, пока!')
+    update.message.reply_text(text='Хорошо, может по новой?')
     return END
 
 
@@ -104,7 +106,8 @@ def start(update: Update, cx: CallbackContext) -> str:
             return END
 
         code = data.removeprefix('/start ')
-        check_otp_code(update, cx, code)
+        if code != '/start':
+            check_otp_code(update, cx, code)
 
         return END
     else:
@@ -117,12 +120,12 @@ def start(update: Update, cx: CallbackContext) -> str:
                 [InlineKeyboardButton(
                     'Зарегистрироваться', callback_data=str(REGISTRATION_USER))],
             ]
-            text = 'Привет, это бот для учёта посещаемости студентов на парах.\n'
-            text += "Чтобы начать регистрацию нажмите на кнопку ниже👇\n"
+            text =  "Привет, это бот для учёта посещаемости студентов на парах.\n"
             text += "Вводите полное ФИО. Если вы опечатались, то данные можно поправить до нажатия кнопки 'Завершить регистрацию'\n"
             text += "❗️❗️❗\n️Будьте внимательны, после её нажатия изменить свои данные нельзя.\nОбращайтесь к преподавателю.\n❗️❗️❗️"
             text += "\n\n"
             text += "Для того, чтобы отметиться на паре тебе достаточно отсканировать QR-код, который покажет преподаватель на доске."
+            text += "Чтобы начать регистрацию нажмите на кнопку ниже👇\n"
 
 
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -153,7 +156,8 @@ def start(update: Update, cx: CallbackContext) -> str:
                 return END
 
             code = data.removeprefix('/start ')
-            check_otp_code(update, cx, code)
+            if code != '/start':
+                check_otp_code(update, cx, code)
 
             return END
 
@@ -325,15 +329,14 @@ def check_otp_code(update: Update, cx: CallbackContext, code: str) -> None:
     else:
         cx.user_data['otp_try'] += 1
 
-        if cx.user_data['otp_try'] >= 3:
-            logger.error(
-                f'{cx.user_data["uid"]} {cx.user_data["name"]} entered the password incorrectly more than 3 times. '
-                'You need to check its actual presence.'
-            )
-
         logger.warning(
             f'{cx.user_data["uid"]} {cx.user_data["name"]} try incorrect password'
         )
+
+        if cx.user_data['otp_try'] >= 3:
+            logger.error(
+                f'{cx.user_data["uid"]} {cx.user_data["name"]} entered the password incorrectly more than 3 times.'
+            )
 
         cx.bot.send_message(
             chat_id=update.message.chat.id,
@@ -355,6 +358,5 @@ def update_otp_code():
 
         # Change this line if you edit folder name or other
         img.save('www/static/img/qr.png')
-        print('[+] Generate new code')
 
         sleep(REFRESH_TIME)
