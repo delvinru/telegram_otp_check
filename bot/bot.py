@@ -75,12 +75,12 @@ def main():
         MessageHandler( (Filters.text | Filters.sticker) & (~Filters.command), mumble) 
     )
 
+    # Start OTP code generator
     otp_generator = Thread(target=generate_otp)
     otp_generator.start()
 
     # Start websocket server
     websocket_thread = Thread(target=start_websocket)
-    websocket_thread.daemon = True
     websocket_thread.start()
 
     # Start long polling
