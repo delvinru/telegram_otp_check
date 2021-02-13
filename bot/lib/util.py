@@ -54,18 +54,19 @@ otp_code = hashlib.md5(urandom(32)).hexdigest()
 db = DBHelper()
 
 # Some basic function
-def mumble(update: Update, cx: CallbackContext) -> None:
+def mumble(update: Update, cx: CallbackContext):
     """If user not choice available options send 'i don't know' message"""
 
     stickers = [
         'CAACAgIAAxkBAAINAl-9nTmXosBfTTsgxqkLPzuoxWWMAAIoAQACzk6PArBGaMYEVWBEHgQ',
         'CAACAgIAAxkBAAINFF-9nlokjHN1b9ugRAGt6XkcO5t7AAIUAQACzk6PArThej9_OS8VHgQ'
     ]
+
     sticker = choice(stickers)
     update.message.reply_sticker(sticker)
 
 
-def send_dev(update: Update, cx: CallbackContext) -> None:
+def send_dev(update: Update, cx: CallbackContext):
     """If user choose /dev than send message about developer"""
 
     text = 'Если вы заметили какие-то сбои в моей программе, \
@@ -73,7 +74,7 @@ def send_dev(update: Update, cx: CallbackContext) -> None:
     update.message.reply_text(text=text)
 
 
-def send_help(update: Update, cx: CallbackContext) -> None:
+def send_help(update: Update, cx: CallbackContext):
     text =  "Используй /start, чтобы начать взаимодействовать с ботом\n"
     text += "Если у вас возникли проблемы, пропишите команду /stop.\n"
     text += "Если и это не помогло, обратитесь к преподавателю."
@@ -85,7 +86,7 @@ def stop(update: Update, cx: CallbackContext) -> int:
     return END
 
 
-def start(update: Update, cx: CallbackContext) -> str:
+def start(update: Update, cx: CallbackContext):
     """Initialize main window"""
 
     # Check user was init or not
@@ -102,7 +103,7 @@ def start(update: Update, cx: CallbackContext) -> str:
         try:
             data = update.message.text
         except:
-            # if code not proviced in /start than just end conversation or other shit
+            # if OTP-code not provided in /start than just end conversation or other shit
             return END
 
         code = data.removeprefix('/start ')
@@ -152,7 +153,7 @@ def start(update: Update, cx: CallbackContext) -> str:
             try:
                 data = update.message.text
             except:
-                # if code not proviced in /start than just end conversation or other shit
+                # if code not provided in /start than just end conversation or other shit
                 return END
 
             code = data.removeprefix('/start ')
@@ -164,7 +165,7 @@ def start(update: Update, cx: CallbackContext) -> str:
 ###
 # Functions that are required for user registration
 ###
-def reg_select_feature(update: Update, cx: CallbackContext) -> None:
+def reg_select_feature(update: Update, cx: CallbackContext) -> str:
     """Main menu of registration field"""
     buttons = [
         [
@@ -174,7 +175,8 @@ def reg_select_feature(update: Update, cx: CallbackContext) -> None:
         [
             InlineKeyboardButton(
                 'Введённые данные',
-                callback_data='show_data'),
+                callback_data='show_data'
+            ),
             InlineKeyboardButton('Завершить регистрацию', callback_data='done')
         ]
     ]
@@ -184,15 +186,14 @@ def reg_select_feature(update: Update, cx: CallbackContext) -> None:
     if not cx.user_data.get(START_OVER):
         # First run of this function
         update.callback_query.answer()
-        update.callback_query.edit_message_text(
-            text=text, reply_markup=keyboard)
+        update.callback_query.edit_message_text(text=text, reply_markup=keyboard)
     else:
         update.message.reply_text(text=text, reply_markup=keyboard)
 
     return SELECTING_FEATURE
 
 
-def show_data(update: Update, cx: CallbackContext) -> None:
+def show_data(update: Update, cx: CallbackContext):
     """Show info about user in registration field"""
 
     cx.user_data[CURRENT_FEATURE] = update.callback_query.data
@@ -214,12 +215,15 @@ def show_data(update: Update, cx: CallbackContext) -> None:
     cx.user_data[START_OVER] = False
     update.callback_query.answer()
     update.callback_query.edit_message_text(
-        text=text, reply_markup=keyboard, parse_mode='Markdown')
+        text=text, 
+        reply_markup=keyboard, 
+        parse_mode='Markdown'
+    )
 
     return MAIN_REG
 
 
-def ask_for_input(update: Update, cx: CallbackContext) -> None:
+def ask_for_input(update: Update, cx: CallbackContext):
     """Prompt for user input"""
 
     cx.user_data[CURRENT_FEATURE] = update.callback_query.data
@@ -229,7 +233,7 @@ def ask_for_input(update: Update, cx: CallbackContext) -> None:
     return TYPING
 
 
-def save_input(update: Update, cx: CallbackContext) -> None:
+def save_input(update: Update, cx: CallbackContext):
     """Save user state in context"""
 
     cx.user_data['uid'] = update.message.from_user.id
@@ -237,8 +241,9 @@ def save_input(update: Update, cx: CallbackContext) -> None:
     current_option = cx.user_data[CURRENT_FEATURE]
     user_text = update.message.text
 
+    # This line have special format for group. Ex.: KKSO-11-11
     regex_group = r'^\S{4}-\d{2}-\d{2}$'
-    regex_name = r'\S{3,} \S{3,} \S{3,}'
+    regex_name = r'\S{3,}'
 
     bad_input = False
     if current_option == 'name':
@@ -255,14 +260,15 @@ def save_input(update: Update, cx: CallbackContext) -> None:
     if bad_input:
         cx.bot.send_message(
             chat_id=update.message.chat.id,
-            text='Вы ввели какие-то некорректные данные.🤔\nПопробуйте снова')
+            text='Вы ввели какие-то некорректные данные.🤔\nПопробуйте снова'
+        )
 
     cx.user_data[START_OVER] = True
     return reg_select_feature(update, cx)
 
 
 @logger.catch
-def register_user(update: Update, cx: CallbackContext) -> None:
+def register_user(update: Update, cx: CallbackContext):
     """Add user to database"""
 
     # If tried register without name or group show data and start again
@@ -284,14 +290,15 @@ def register_user(update: Update, cx: CallbackContext) -> None:
         cx.user_data['group'])
 
     logger.info(
-        f'User {cx.user_data["uid"]} {cx.user_data["username"]} was registered')
+        f'User {cx.user_data["uid"]} {cx.user_data["username"]} was registered'
+    )
 
     cx.user_data[START_OVER] = True
     start(update, cx)
     return END
 
 
-def stop_reg(update: Update, cx: CallbackContext) -> None:
+def stop_reg(update: Update, cx: CallbackContext):
     """End registration"""
     update.message.reply_text('Хорошо, пока!')
     return END
@@ -299,13 +306,13 @@ def stop_reg(update: Update, cx: CallbackContext) -> None:
 ###
 # Functions that are needed to mark the user
 ###
-def stop_check(update: Update, cx: CallbackContext) -> None:
+def stop_check(update: Update, cx: CallbackContext):
     """End of check"""
     update.message.reply_text('Хорошо, пока!')
     return END
 
 
-def check_otp_code(update: Update, cx: CallbackContext, code: str) -> None:
+def check_otp_code(update: Update, cx: CallbackContext, code: str):
     """Functions check OTP code input by user and if correct mark him in DB"""
 
     # Count failed tries
@@ -344,19 +351,3 @@ def check_otp_code(update: Update, cx: CallbackContext, code: str) -> None:
         )
 
         return END
-
-    
-def update_otp_code():
-    """Function run in Thread and update otp_code variable"""
-
-    while True:
-        global otp_code
-        otp_code = hashlib.md5(urandom(32)).hexdigest()
-
-        data = BOT_URL + otp_code
-        img = qrcode.make(data)
-
-        # Change this line if you edit folder name or other
-        img.save('www/static/img/qr.png')
-
-        sleep(REFRESH_TIME)

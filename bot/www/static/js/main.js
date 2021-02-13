@@ -1,13 +1,29 @@
-function refresh_img(e) {
-    element = document.getElementById("qr");
-    setInterval(function() {
-        element.src = element.src.split('?')[0] + '?' + new Date().getTime();
-    }, 500); 
+function start_websocket(){
+    let ws = new WebSocket("ws://127.0.0.1:9999/");
+
+    ws.onopen = function() {
+        console.log("Establish connection");
+    };
+
+    ws.onclose = function(event) {
+        if (event.wasClean) {
+            console.log("Close connection clearly!");
+        } else {
+            console.log("Close connection!");
+        }
+    };
+
+    ws.onmessage = function(event) {
+        let qr = document.getElementById("qr");
+        qr.src = event.data;
+    };
+
+    ws.onerror = function(error) {
+        console.log("Error: " + error.message);
+    };
 }
 
-window.onload = function(){
-    refresh_img();
-
+function draw_canvas(){
     // Not my code, just copy from Internet
     var c = document.getElementById("c");
     var ctx = c.getContext("2d");
@@ -59,4 +75,10 @@ window.onload = function(){
     }
 
     setInterval(draw, 35);
+
+}
+
+window.onload = function(){
+    start_websocket();
+    draw_canvas();
 }

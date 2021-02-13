@@ -6,13 +6,15 @@ import subprocess
 # Imports for telegram API
 import telegram
 from loguru import logger
-from telegram import update
+from telegram import Update
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
 
 # My libs
 from lib.dbhelper import DBHelper
 from lib.settings import *
 from lib.util import *
+from lib.rest_api import *
+from lib.otp_generator import *
 
 
 def main():
@@ -73,8 +75,14 @@ def main():
         MessageHandler( (Filters.text | Filters.sticker) & (~Filters.command), mumble) 
     )
 
-    # Start otp_code updater
-    Thread(target=update_otp_code).start()
+    otp_generator = Thread(target=generate_otp)
+    otp_generator.start()
+
+    # Start websocket server
+    websocket_thread = Thread(target=start_websocket)
+    websocket_thread.daemon = True
+    websocket_thread.start()
+
 
     # Start web server
     subprocess.Popen(

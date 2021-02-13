@@ -33,6 +33,7 @@ def admin_page():
 
     return render_template("admin.html", table=False)
 
+
 if __name__ == "__main__":
     if len(sys.argv) <= 1:
         print(f"Usage: ./{sys.argv[0]} <port>")
