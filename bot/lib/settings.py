@@ -5,7 +5,7 @@ Also in this file you can setup settings for work with bot.
 """
 import os
 
-TOKEN = os.getenv("TOKEN_CHECKER_OS")
+TOKEN = os.getenv("OTP_CHECK_TOKEN")
 BOT_NAME = 'kks_checker_bot'
 BOT_URL = f'https://t.me/{BOT_NAME}?start='
 

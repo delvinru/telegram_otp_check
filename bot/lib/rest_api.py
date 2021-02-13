@@ -39,7 +39,7 @@ def start_websocket():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    HOST, PORT = "127.0.0.1", 9999
+    HOST, PORT = "0.0.0.0", 9999
     srv = websockets.serve(update_otp_code, HOST, PORT)
 
     asyncio.get_event_loop().run_until_complete(srv)

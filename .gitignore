@@ -4,5 +4,5 @@ bot/db/*.sqlite
 bot/logs/*.log
 .vscode/*
 bot/lib/__pycache__/*
-bot/www/__pycache__/*
-.vscode/*
+www/__pycache__/*
+.env

@@ -1,5 +1,5 @@
 python-telegram-bot
 loguru
 qrcode
-Flask
 websockets
+Pillow

@@ -83,17 +83,6 @@ def main():
     websocket_thread.daemon = True
     websocket_thread.start()
 
-
-    # Start web server
-    subprocess.Popen(
-        f"cd www/ && python3 server.py {PORT}", 
-        shell=True, 
-        stdout=subprocess.DEVNULL, 
-        stderr=subprocess.DEVNULL, 
-        close_fds=True
-    )
-    logger.info(f"Web server started at http://127.0.0.1:{PORT}/")
-
     # Start long polling
     updater.start_polling()
     updater.idle()
