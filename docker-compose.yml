@@ -13,7 +13,7 @@ services:
       - OTP_CHECK_TOKEN=${OTP_CHECK_TOKEN}
     restart: always
 
-  flask:
+  web:
     build: 
       context: ./www
       dockerfile: Dockerfile

@@ -19,6 +19,7 @@ class DBHelper:
             `name` TEXT NOT NULL,
             `group` TEXT NOT NULL
         )"""
+
         self.cursor.execute(query)
 
         query = """CREATE TABLE IF NOT EXISTS visits (
@@ -26,8 +27,8 @@ class DBHelper:
         user INTEGER, 
         timestamp DATETIME DEFAULT (datetime('now','localtime'))
         )"""
-        self.cursor.execute(query)
 
+        self.cursor.execute(query)
         self.conn.commit()
     
     def init_user(self, uid=None, username=None, name=None, group=None):

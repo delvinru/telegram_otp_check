@@ -1,5 +1,7 @@
 function start_websocket(){
-    let ws = new WebSocket("ws://127.0.0.1:9999/");
+    let host = window.location.hostname;
+    let url = "ws://"+host+":9999/";
+    let ws = new WebSocket(url);
 
     ws.onopen = function() {
         console.log("Establish connection");
