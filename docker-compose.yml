@@ -15,12 +15,12 @@ services:
 
   web:
     build: 
-      context: ./www
+      context: ./web
       dockerfile: Dockerfile
     depends_on: 
       - bot
     volumes: 
-      - ./bot/db:/www/db
+      - ./bot/db:/web/db
     ports: 
       - "8080:8080"
     restart: always
