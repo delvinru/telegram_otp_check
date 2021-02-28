@@ -17,26 +17,27 @@ class DBHelper:
             `id` INTEGER PRIMARY KEY,
             `username` TEXT NOT NULL,
             `name` TEXT NOT NULL,
-            `group` TEXT NOT NULL
+            `group` TEXT NOT NULL,
+            `id_card` TEXT NOT NULL
         )"""
 
         self.cursor.execute(query)
 
         query = """CREATE TABLE IF NOT EXISTS visits (
-        id INTEGER  PRIMARY KEY AUTOINCREMENT, 
-        user INTEGER, 
-        timestamp DATETIME DEFAULT (datetime('now','localtime'))
+            id INTEGER  PRIMARY KEY AUTOINCREMENT, 
+            user INTEGER, 
+            timestamp DATETIME DEFAULT (datetime('now','localtime'))
         )"""
 
         self.cursor.execute(query)
         self.conn.commit()
     
-    def init_user(self, uid=None, username=None, name=None, group=None):
+    def init_user(self, uid=None, username=None, name=None, group=None, id_card=None):
         """Register user in database"""
 
         self.cursor.execute(
-            'INSERT INTO `profiles` (`id`, `username`, `name`, `group`) VALUES (?, ?, ?, ?)', 
-            (uid, username, name, group, )
+            'INSERT INTO `profiles` (`id`, `username`, `name`, `group`, `id_card`) VALUES (?, ?, ?, ?, ?)', 
+            (uid, username, name, group, id_card,)
         )
 
         logger.info(f'{uid} {username} {name} registered')
