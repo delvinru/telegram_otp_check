@@ -11,6 +11,10 @@ services:
       - "9999:9999"
     environment:
       - OTP_CHECK_TOKEN=${OTP_CHECK_TOKEN}
+      - REMOTE_SERVER=${REMOTE_SERVER}
+      - LOGIN=${LOGIN}
+      - PASSWORD=${PASSWORD}
+      - BOT_NAME=${BOT_NAME}
     restart: always
 
   web:
@@ -23,4 +27,6 @@ services:
       - ./bot/db:/web/db
     ports: 
       - "8080:8080"
+    environment:
+      - BOT_NAME=${BOT_NAME}
     restart: always

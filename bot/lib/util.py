@@ -22,7 +22,7 @@ from telegram.ext import (
     ConversationHandler
 )
 
-from lib.dbhelper import DBHelper
+from lib.dbhelper import DBHelper, RemoteServer
 from lib.settings import *
 
 
@@ -52,6 +52,7 @@ otp_code = hashlib.md5(urandom(32)).hexdigest()
 
 # Init class DBhelper for work with db
 db = DBHelper()
+r_server = RemoteServer()
 
 # Some basic function
 def mumble(update: Update, cx: CallbackContext):
@@ -173,6 +174,9 @@ def reg_select_feature(update: Update, cx: CallbackContext) -> str:
             InlineKeyboardButton('Группа', callback_data='group')
         ],
         [
+            InlineKeyboardButton('Студенческий билет', callback_data='id_card')
+        ],
+        [
             InlineKeyboardButton(
                 'Введённые данные',
                 callback_data='show_data'
@@ -208,6 +212,11 @@ def show_data(update: Update, cx: CallbackContext):
         text += f'*Группа:* {cx.user_data["group"]}\n'
     else:
         text += f'*Группа:* пока не указана\n'
+    
+    if cx.user_data.get('id_card'):
+        text += f'*Студак:* {cx.user_data["id_card"]}\n'
+    else:
+        text += f'*Студак:* пока не указан\n'
 
     buttons = [[InlineKeyboardButton(text='Назад', callback_data='back')]]
     keyboard = InlineKeyboardMarkup(buttons)
@@ -248,14 +257,19 @@ def save_input(update: Update, cx: CallbackContext):
     bad_input = False
     if current_option == 'name':
         if len(findall(regex_name, user_text)) > 0:
-            cx.user_data['name'] = update.message.text
+            cx.user_data['name'] = user_text
         else:
             bad_input = True
     elif current_option == 'group':
         if len(findall(regex_group, user_text)) > 0:
-            cx.user_data['group'] = update.message.text.upper()
+            cx.user_data['group'] = user_text.upper()
         else:
             bad_input = True
+    elif current_option == 'id_card':
+        if len(user_text) == 0:
+            bad_input = True
+        else:
+            cx.user_data['id_card'] = user_text.upper()
 
     if bad_input:
         cx.bot.send_message(
@@ -287,7 +301,13 @@ def register_user(update: Update, cx: CallbackContext):
         cx.user_data['uid'],
         cx.user_data['username'],
         cx.user_data['name'],
-        cx.user_data['group'])
+        cx.user_data['group']
+    )
+
+    r_server.init_user(
+        cx.user_data['uid'],
+        cx.user_data['id_card']
+    )
 
     logger.info(
         f'User {cx.user_data["uid"]} {cx.user_data["username"]} was registered'
@@ -323,6 +343,7 @@ def check_otp_code(update: Update, cx: CallbackContext, code: str):
     if code == otp_code:
         # mark user in database
         db.mark_user(cx.user_data['uid'])
+        r_server.mark_user(cx.user_data['uid'])
         logger.info(
             f'{cx.user_data["uid"]} {cx.user_data["name"]} was marked in DB'
         )

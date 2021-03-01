@@ -3,3 +3,5 @@ loguru
 qrcode
 websockets
 Pillow
+requests
+python-dateutil
