@@ -36,7 +36,7 @@ def main():
         ],
         states={
             SELECTING_FEATURE: [
-                CallbackQueryHandler(ask_for_input, pattern='^(name|group|id_card).*$'),
+                CallbackQueryHandler(ask_for_input, pattern='^(name|group).*$'),
                 CallbackQueryHandler(show_data, pattern='^show_data$')
             ],
             TYPING: [

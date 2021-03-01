@@ -170,10 +170,7 @@ def reg_select_feature(update: Update, cx: CallbackContext) -> str:
     buttons = [
         [
             InlineKeyboardButton('ФИО', callback_data='name'),
-            InlineKeyboardButton('Группа', callback_data='group'),
-        ],
-        [
-            InlineKeyboardButton('Номер студенческого билета', callback_data='id_card')
+            InlineKeyboardButton('Группа', callback_data='group')
         ],
         [
             InlineKeyboardButton(
@@ -211,11 +208,6 @@ def show_data(update: Update, cx: CallbackContext):
         text += f'*Группа:* {cx.user_data["group"]}\n'
     else:
         text += f'*Группа:* пока не указана\n'
-    
-    if cx.user_data.get('id_card'):
-        text += f'*Студенческий билет:* {cx.user_data["id_card"]}'
-    else:
-        text += f'*Студенческий билет:* пока не указан\n'
 
     buttons = [[InlineKeyboardButton(text='Назад', callback_data='back')]]
     keyboard = InlineKeyboardMarkup(buttons)
@@ -256,18 +248,13 @@ def save_input(update: Update, cx: CallbackContext):
     bad_input = False
     if current_option == 'name':
         if len(findall(regex_name, user_text)) > 0:
-            cx.user_data['name'] = user_text
+            cx.user_data['name'] = update.message.text
         else:
             bad_input = True
     elif current_option == 'group':
         if len(findall(regex_group, user_text)) > 0:
-            cx.user_data['group'] = user_text.upper()
+            cx.user_data['group'] = update.message.text.upper()
         else:
-            bad_input = True
-    elif current_option == 'id_card':
-        if len(user_text) != 0:
-            cx.user_data['id_card'] = user_text.upper()
-        else: 
             bad_input = True
 
     if bad_input:
@@ -285,7 +272,7 @@ def register_user(update: Update, cx: CallbackContext):
     """Add user to database"""
 
     # If tried register without name or group show data and start again
-    if not cx.user_data.get('name') or not cx.user_data.get('group') or not cx.user_data.get('id_card'):
+    if not cx.user_data.get('name') or not cx.user_data.get('group'):
         logger.error(
             f'User {cx.user_data["uid"]} try register without required field')
         cx.user_data[START_OVER] = True
@@ -300,8 +287,7 @@ def register_user(update: Update, cx: CallbackContext):
         cx.user_data['uid'],
         cx.user_data['username'],
         cx.user_data['name'],
-        cx.user_data['group'],
-        cx.user_data['id_card'])
+        cx.user_data['group'])
 
     logger.info(
         f'User {cx.user_data["uid"]} {cx.user_data["username"]} was registered'
