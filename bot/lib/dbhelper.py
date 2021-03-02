@@ -100,6 +100,9 @@ class RemoteServer:
         # Update token every 30 minute
         if offset > 1800:
             self.__extend_session()
+        # If session die renew
+        elif offset > 3600:
+            self.__init_session()
     
     def init_user(self, telegram_id=None, id_card=None):
         self.__check_session()
