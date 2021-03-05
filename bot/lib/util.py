@@ -171,16 +171,12 @@ def reg_select_feature(update: Update, cx: CallbackContext) -> str:
     buttons = [
         [
             InlineKeyboardButton('ФИО', callback_data='name'),
-            InlineKeyboardButton('Группа', callback_data='group')
+            InlineKeyboardButton('Git логин', callback_data='id_card')
         ],
         [
-            InlineKeyboardButton('Студенческий билет', callback_data='id_card')
+            InlineKeyboardButton('Введённые данные', callback_data='show_data')
         ],
         [
-            InlineKeyboardButton(
-                'Введённые данные',
-                callback_data='show_data'
-            ),
             InlineKeyboardButton('Завершить регистрацию', callback_data='done')
         ]
     ]
@@ -208,15 +204,10 @@ def show_data(update: Update, cx: CallbackContext):
     else:
         text += f'*ФИО:* пока не указано\n'
 
-    if cx.user_data.get('group'):
-        text += f'*Группа:* {cx.user_data["group"]}\n'
-    else:
-        text += f'*Группа:* пока не указана\n'
-    
     if cx.user_data.get('id_card'):
-        text += f'*Студак:* {cx.user_data["id_card"]}\n'
+        text += f'*Git логин:* {cx.user_data["id_card"]}\n'
     else:
-        text += f'*Студак:* пока не указан\n'
+        text += f'*Git логин:* пока не указан\n'
 
     buttons = [[InlineKeyboardButton(text='Назад', callback_data='back')]]
     keyboard = InlineKeyboardMarkup(buttons)
@@ -251,7 +242,6 @@ def save_input(update: Update, cx: CallbackContext):
     user_text = update.message.text
 
     # This line have special format for group. Ex.: KKSO-11-11
-    regex_group = r'^\S{4}-\d{2}-\d{2}$'
     regex_name = r'\S{3,}'
 
     bad_input = False
@@ -260,16 +250,11 @@ def save_input(update: Update, cx: CallbackContext):
             cx.user_data['name'] = user_text
         else:
             bad_input = True
-    elif current_option == 'group':
-        if len(findall(regex_group, user_text)) > 0:
-            cx.user_data['group'] = user_text.upper()
-        else:
-            bad_input = True
     elif current_option == 'id_card':
         if len(user_text) == 0:
             bad_input = True
         else:
-            cx.user_data['id_card'] = user_text.upper()
+            cx.user_data['id_card'] = user_text
 
     if bad_input:
         cx.bot.send_message(
@@ -286,9 +271,8 @@ def register_user(update: Update, cx: CallbackContext):
     """Add user to database"""
 
     # If tried register without name or group show data and start again
-    if not cx.user_data.get('name') or not cx.user_data.get('group'):
-        logger.error(
-            f'User {cx.user_data["uid"]} try register without required field')
+    if not cx.user_data.get('name') or not cx.user_data.get('id_card'):
+        logger.error(f'User {cx.user_data["uid"]} try register without required field')
         cx.user_data[START_OVER] = True
         return show_data(update, cx)
 
@@ -301,7 +285,7 @@ def register_user(update: Update, cx: CallbackContext):
         cx.user_data['uid'],
         cx.user_data['username'],
         cx.user_data['name'],
-        cx.user_data['group']
+        cx.user_data['id_card']
     )
 
     r_server.init_user(
@@ -309,9 +293,7 @@ def register_user(update: Update, cx: CallbackContext):
         cx.user_data['id_card']
     )
 
-    logger.info(
-        f'User {cx.user_data["uid"]} {cx.user_data["username"]} was registered'
-    )
+    logger.info(f'User {cx.user_data["uid"]} {cx.user_data["username"]} was registered')
 
     cx.user_data[START_OVER] = True
     start(update, cx)
@@ -344,6 +326,7 @@ def check_otp_code(update: Update, cx: CallbackContext, code: str):
         # mark user in database
         db.mark_user(cx.user_data['uid'])
         r_server.mark_user(cx.user_data['uid'])
+
         logger.info(
             f'{cx.user_data["uid"]} {cx.user_data["name"]} was marked in DB'
         )
