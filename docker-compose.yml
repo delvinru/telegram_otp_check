@@ -11,6 +11,7 @@ services:
       - "9999:9999"
     environment:
       - OTP_CHECK_TOKEN=${OTP_CHECK_TOKEN}
+      - BOT_NAME=${BOT_NAME}
     restart: always
 
   web:
@@ -21,6 +22,8 @@ services:
       - bot
     volumes: 
       - ./bot/db:/web/db
+    environment:
+      - BOT_NAME=${BOT_NAME}
     ports: 
       - "8080:8080"
     restart: always

@@ -15,13 +15,7 @@
 git clone https://github.com/delvinru/telegram_otp_check.git
 cd telegram_otp_check/
 echo "OTP_CHECK_TOKEN=<YOUR:TELEGRAM_TOKEN>" > .env
-```
-
-Также не забудьте поменять имя бота в файле `bot/lib/settings.py` на своё.
-
-```python
-BOT_NAME = 'kks_checker_bot'
-...
+echo "BOT_NAME=<YOUR_BOT_NAME>" >> .env
 ```
 
 ##### Запуск:
