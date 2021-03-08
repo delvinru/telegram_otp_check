@@ -22,7 +22,7 @@ from telegram.ext import (
     ConversationHandler
 )
 
-from lib.dbhelper import DBHelper, RemoteServer
+from lib.dbhelper import RemoteServer
 from lib.settings import *
 
 
@@ -50,8 +50,7 @@ END = ConversationHandler.END
 # Global variable for checking otp_code and verification
 otp_code = hashlib.md5(urandom(32)).hexdigest()
 
-# Init class DBhelper for work with db
-db = DBHelper()
+# Init class RemoteServer for work with remote server
 r_server = RemoteServer()
 
 # Some basic function
@@ -114,7 +113,8 @@ def start(update: Update, cx: CallbackContext):
         return END
     else:
         user_id = update.message.from_user.id
-        user = db.search_user(user_id)
+        user = r_server.search_user(user_id)
+        cx.user_data["uid"] = user_id
 
         # If new user was detected
         if user is None:
@@ -129,27 +129,21 @@ def start(update: Update, cx: CallbackContext):
             text += "Для того, чтобы отметиться на паре тебе достаточно отсканировать QR-код, который покажет преподаватель на доске."
             text += "Чтобы начать регистрацию нажмите на кнопку ниже👇\n"
 
-
             reply_markup = InlineKeyboardMarkup(keyboard)
             update.message.reply_text(
                 text,
                 reply_markup=reply_markup
             )
 
-            cx.user_data["uid"] = user_id
-
             logger.info(f'New user {user_id} came to registration menu.')
 
             return REGISTRATION
         else:
-            # user = (id, name)
-            text = f'Привет, {user[1]}!\n'
-
+            text = f'Привет, {user}!\n'
             update.message.reply_text(text=text)
 
             # Put info in context menu
-            cx.user_data['uid'] = user[0]
-            cx.user_data['name'] = user[1]
+            cx.user_data['name'] = user
 
             try:
                 data = update.message.text
@@ -170,13 +164,10 @@ def reg_select_feature(update: Update, cx: CallbackContext) -> str:
     """Main menu of registration field"""
     buttons = [
         [
-            InlineKeyboardButton('ФИО', callback_data='name'),
-            InlineKeyboardButton('Git логин', callback_data='id_card')
+            InlineKeyboardButton('Логин', callback_data='login')
         ],
         [
-            InlineKeyboardButton('Введённые данные', callback_data='show_data')
-        ],
-        [
+            InlineKeyboardButton('Введённые данные', callback_data='show_data'),
             InlineKeyboardButton('Завершить регистрацию', callback_data='done')
         ]
     ]
@@ -199,15 +190,11 @@ def show_data(update: Update, cx: CallbackContext):
     cx.user_data[CURRENT_FEATURE] = update.callback_query.data
 
     text = "*Твой профиль*\n"
-    if cx.user_data.get('name'):
-        text += f'*ФИО:* {cx.user_data["name"]}\n'
-    else:
-        text += f'*ФИО:* пока не указано\n'
 
-    if cx.user_data.get('id_card'):
-        text += f'*Git логин:* {cx.user_data["id_card"]}\n'
+    if cx.user_data.get('login'):
+        text += f'*Логин:* {cx.user_data["login"]}\n'
     else:
-        text += f'*Git логин:* пока не указан\n'
+        text += f'*Логин:* пока не указан\n'
 
     buttons = [[InlineKeyboardButton(text='Назад', callback_data='back')]]
     keyboard = InlineKeyboardMarkup(buttons)
@@ -238,23 +225,21 @@ def save_input(update: Update, cx: CallbackContext):
 
     cx.user_data['uid'] = update.message.from_user.id
     cx.user_data['username'] = update.message.from_user.username
+
     current_option = cx.user_data[CURRENT_FEATURE]
     user_text = update.message.text
 
-    # This line have special format for group. Ex.: KKSO-11-11
-    regex_name = r'\S{3,}'
-
     bad_input = False
     if current_option == 'name':
-        if len(findall(regex_name, user_text)) > 0:
-            cx.user_data['name'] = user_text
-        else:
-            bad_input = True
-    elif current_option == 'id_card':
         if len(user_text) == 0:
             bad_input = True
         else:
-            cx.user_data['id_card'] = user_text
+            cx.user_data['name'] = user_text
+    elif current_option == 'login':
+        if len(user_text) == 0:
+            bad_input = True
+        else:
+            cx.user_data['login'] = user_text
 
     if bad_input:
         cx.bot.send_message(
@@ -271,7 +256,7 @@ def register_user(update: Update, cx: CallbackContext):
     """Add user to database"""
 
     # If tried register without name or group show data and start again
-    if not cx.user_data.get('name') or not cx.user_data.get('id_card'):
+    if not cx.user_data.get('login'):
         logger.error(f'User {cx.user_data["uid"]} try register without required field')
         cx.user_data[START_OVER] = True
         return show_data(update, cx)
@@ -280,17 +265,10 @@ def register_user(update: Update, cx: CallbackContext):
         logger.warning(f'User {cx.user_data["name"]} with empty username')
         cx.user_data['username'] = 'None'
 
-    # Create user in database
-    db.init_user(
-        cx.user_data['uid'],
-        cx.user_data['username'],
-        cx.user_data['name'],
-        cx.user_data['id_card']
-    )
-
+    # Init user on server
     r_server.init_user(
         cx.user_data['uid'],
-        cx.user_data['id_card']
+        cx.user_data['login']
     )
 
     logger.info(f'User {cx.user_data["uid"]} {cx.user_data["username"]} was registered')
@@ -324,12 +302,12 @@ def check_otp_code(update: Update, cx: CallbackContext, code: str):
     global otp_code
     if code == otp_code:
         # mark user in database
-        db.mark_user(cx.user_data['uid'])
         r_server.mark_user(cx.user_data['uid'])
 
         logger.info(
-            f'{cx.user_data["uid"]} {cx.user_data["name"]} was marked in DB'
+            f'{cx.user_data["uid"]} {cx.user_data["name"]} was marked on server'
         )
+
         # send successfull message
         cx.bot.send_message(
             chat_id=update.message.chat.id,

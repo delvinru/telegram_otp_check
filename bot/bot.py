@@ -10,7 +10,6 @@ from telegram import Update
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
 
 # My libs
-from lib.dbhelper import DBHelper
 from lib.settings import *
 from lib.util import *
 from lib.rest_api import *
@@ -19,9 +18,6 @@ from lib.otp_generator import *
 
 def main():
     """Initialize all logic for work"""
-    # setup DBHelper
-    db = DBHelper()
-    db.setup()
 
     # Telegram setting
     updater = Updater(TOKEN, use_context=True)
@@ -36,7 +32,7 @@ def main():
         ],
         states={
             SELECTING_FEATURE: [
-                CallbackQueryHandler(ask_for_input, pattern='^(name|id_card).*$'),
+                CallbackQueryHandler(ask_for_input, pattern='^(login).*$'),
                 CallbackQueryHandler(show_data, pattern='^show_data$')
             ],
             TYPING: [

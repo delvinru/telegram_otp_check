@@ -1,67 +1,14 @@
 import json
-import sqlite3
-
-import requests
-from loguru import logger
 from datetime import datetime
+
 import dateutil.parser
 import pytz
+import requests
+from loguru import logger
 
 from lib.settings import (REMOTE_SERVER, REMOTE_SERVER_LOGIN,
                           REMOTE_SERVER_PASSWORD)
 
-
-class DBHelper:
-    def __init__(self, dbname="db/students.sqlite"):
-        self.dbname = dbname
-        self.conn = sqlite3.connect(dbname, check_same_thread=False)
-        self.cursor = self.conn.cursor()
-    
-    def setup(self):
-        """Setup database"""
-
-        logger.info('Initialize database')
-
-        query = """CREATE TABLE IF NOT EXISTS profiles (
-            `id` INTEGER PRIMARY KEY,
-            `username` TEXT NOT NULL,
-            `name` TEXT NOT NULL,
-            `id_card` TEXT NOT NULL
-        )"""
-
-        self.cursor.execute(query)
-
-        query = """CREATE TABLE IF NOT EXISTS visits (
-            id INTEGER  PRIMARY KEY AUTOINCREMENT, 
-            user INTEGER, 
-            timestamp DATETIME DEFAULT (datetime('now','localtime'))
-        )"""
-
-        self.cursor.execute(query)
-        self.conn.commit()
-    
-    def init_user(self, uid=None, username=None, name=None, id_card=None):
-        """Register user in database"""
-
-        self.cursor.execute(
-            'INSERT INTO `profiles` (`id`, `username`, `name`, `id_card`) VALUES (?, ?, ?, ?)', 
-            (uid, username, name, id_card,)
-        )
-
-        logger.info(f'{uid} {username} {name} registered')
-        self.conn.commit()
-    
-    def search_user(self, uid=None):
-        """Search user in database"""
-
-        self.cursor.execute('SELECT `id`, `name` from `profiles` WHERE `id`=?', (uid,))
-        return self.cursor.fetchone()
-    
-    def mark_user(self, uid=None):
-        """Mark a user in the database if they want to register for a class"""
-
-        self.cursor.execute('INSERT INTO visits (user) VALUES(?)', (str(uid),))
-        self.conn.commit()
 
 class RemoteServer:
     def __init__(self):
@@ -101,7 +48,7 @@ class RemoteServer:
         if offset > 1800:
             self.__extend_session()
         # If session die renew
-        elif offset > 3600:
+        elif offset > 3500:
             self.__init_session()
     
     def init_user(self, telegram_id=None, id_card=None):
@@ -138,3 +85,19 @@ class RemoteServer:
             logger.warning(f"User not marked in server. Error: {r}")
             return False
     
+    def search_user(self, telegram_id=None):
+        self.__check_session()
+
+        data = json.dumps({
+            "secure_token" : self.secure_token,
+            "telegram_id" : telegram_id
+        })
+
+        r = self.session.put(self.telegram_url, headers=self.header, data=data).json()
+
+        if r['result']:
+            logger.info(f"Find user on server: {r['name']}")
+            return r['name']
+        else:
+            logger.info(f"User {telegram_id} not found on server")
+            return None
