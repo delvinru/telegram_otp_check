@@ -32,9 +32,15 @@ class RemoteServer:
             "login" : self.login,
             "password" : self.password
         })
-        r = self.session.post(self.session_url, headers=self.header, data=data).json()
+        try:
+            r = self.session.post(self.session_url, headers=self.header, data=data).json()
+        except:
+            logger.warning("Server error in __init_session")
+            return None
+
         self.secure_token = r['secure_token']
         self.time_of_death = r['time_of_death']
+        self.init_session = True
     
     def __extend_session(self):
         new_url = self.session_url + self.secure_token
@@ -122,10 +128,10 @@ class RemoteServer:
 
         if r['result']:
             if not r.get('name'):
-                return 'К сожалению, я тебя не нашёл на сервере🤔'
+                return None
 
             logger.info(f"Find user on server: {r['name']}")
             return r['name']
         else:
             logger.info(f"User {telegram_id} not found on server")
-            return 'К сожалению, я тебя не нашёл на сервере🤔'
+            return None

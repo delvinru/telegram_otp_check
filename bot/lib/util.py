@@ -88,7 +88,7 @@ def start(update: Update, cx: CallbackContext):
 
     # Check user was init or not
     if cx.user_data.get(START_OVER):
-        text = f'Привет, {cx.user_data["name"]}!\n'
+        text = f'Привет, {cx.user_data["login"]}!\n'
 
         # Sometimes this code got exception because message don't callback query
         try:
@@ -141,7 +141,7 @@ def start(update: Update, cx: CallbackContext):
             update.message.reply_text(text=text)
 
             # Put info in context menu
-            cx.user_data['name'] = user
+            cx.user_data['login'] = user
 
             try:
                 data = update.message.text
@@ -228,12 +228,8 @@ def save_input(update: Update, cx: CallbackContext):
     user_text = update.message.text
 
     bad_input = False
-    if current_option == 'name':
-        if len(user_text) == 0:
-            bad_input = True
-        else:
-            cx.user_data['name'] = user_text
-    elif current_option == 'login':
+
+    if current_option == 'login':
         if len(user_text) == 0:
             bad_input = True
         else:
@@ -258,10 +254,6 @@ def register_user(update: Update, cx: CallbackContext):
         logger.error(f'User {cx.user_data["uid"]} try register without required field')
         cx.user_data[START_OVER] = True
         return show_data(update, cx)
-
-    if not cx.user_data.get('username'):
-        logger.warning(f'User {cx.user_data["name"]} with empty username')
-        cx.user_data['username'] = 'None'
 
     # Init user on server
     r_server.init_user(
@@ -303,7 +295,7 @@ def check_otp_code(update: Update, cx: CallbackContext, code: str):
         r_server.mark_user(cx.user_data['uid'])
 
         logger.info(
-            f'{cx.user_data["uid"]} {cx.user_data["name"]} was marked on server'
+            f'{cx.user_data["uid"]} {cx.user_data["login"]} was marked on server'
         )
 
         # send successfull message
@@ -317,12 +309,12 @@ def check_otp_code(update: Update, cx: CallbackContext, code: str):
         cx.user_data['otp_try'] += 1
 
         logger.warning(
-            f'{cx.user_data["uid"]} {cx.user_data["name"]} try incorrect password'
+            f'{cx.user_data["uid"]} {cx.user_data["login"]} try incorrect password'
         )
 
         if cx.user_data['otp_try'] >= 3:
             logger.error(
-                f'{cx.user_data["uid"]} {cx.user_data["name"]} entered the password incorrectly more than 3 times.'
+                f'{cx.user_data["uid"]} {cx.user_data["login"]} entered the password incorrectly more than 3 times.'
             )
 
         cx.bot.send_message(
