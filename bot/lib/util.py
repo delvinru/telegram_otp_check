@@ -1,10 +1,7 @@
 import hashlib
 from os import urandom
 from random import choice
-from re import findall
-from time import sleep
 
-import qrcode
 from loguru import logger
 
 # Telegram stuff
@@ -22,7 +19,7 @@ from telegram.ext import (
     ConversationHandler
 )
 
-from lib.dbhelper import RemoteServer
+from lib.remote_server import RemoteServer
 from lib.settings import *
 
 
@@ -113,9 +110,10 @@ def start(update: Update, cx: CallbackContext):
         return END
     else:
         user_id = update.message.from_user.id
-        user = r_server.search_user(user_id)
-        cx.user_data["uid"] = user_id
 
+        user = r_server.search_user(user_id)
+
+        cx.user_data["uid"] = user_id
         # If new user was detected
         if user is None:
             keyboard = [

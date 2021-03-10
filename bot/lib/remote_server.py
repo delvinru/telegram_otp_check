@@ -6,8 +6,11 @@ import pytz
 import requests
 from loguru import logger
 
-from lib.settings import (REMOTE_SERVER, REMOTE_SERVER_LOGIN,
-                          REMOTE_SERVER_PASSWORD)
+from lib.settings import (
+    REMOTE_SERVER, 
+    REMOTE_SERVER_LOGIN,
+    REMOTE_SERVER_PASSWORD
+)
 
 
 class RemoteServer:
@@ -22,7 +25,7 @@ class RemoteServer:
         self.session = requests.Session()
         self.session_url = self.url + "session"
         self.telegram_url = self.url + "telegram"
-        self.__init_session()
+        self.init_session = False
     
     def __init_session(self):
         data = json.dumps({
@@ -40,6 +43,14 @@ class RemoteServer:
         self.time_of_death = r['time_of_death']
 
     def __check_session(self):
+        """
+        Check session for rest api user
+        If session was not initialized or completed than extend session 
+        """
+
+        if not self.init_session:
+            self.__init_session()
+
         server = dateutil.parser.isoparse(self.time_of_death)
         tz = pytz.timezone('Europe/Paris')
         now = datetime.now(tz).replace(tzinfo=None)
@@ -52,6 +63,10 @@ class RemoteServer:
             self.__init_session()
     
     def init_user(self, telegram_id=None, id_card=None):
+        """
+        Init user on remote server
+        """
+
         self.__check_session()
 
         data = json.dumps({
@@ -69,11 +84,16 @@ class RemoteServer:
             return False
         
     def mark_user(self, telegram_id=None):
+        """
+        Send data to remote server for mark user
+        """
+
         self.__check_session()
 
         data = json.dumps({
             "secure_token" : self.secure_token,
-            "telegram_id" : telegram_id
+            "telegram_id" : telegram_id,
+            "simulate" : False
         })
 
         r = self.session.put(self.telegram_url, headers=self.header, data=data).json()
@@ -86,18 +106,26 @@ class RemoteServer:
             return False
     
     def search_user(self, telegram_id=None):
+        """
+        Find user by telegram id on remote server
+        """
+
         self.__check_session()
 
         data = json.dumps({
             "secure_token" : self.secure_token,
-            "telegram_id" : telegram_id
+            "telegram_id" : telegram_id,
+            "simulate" : True
         })
 
         r = self.session.put(self.telegram_url, headers=self.header, data=data).json()
 
         if r['result']:
+            if not r.get('name'):
+                return 'К сожалению, я тебя не нашёл на сервере🤔'
+
             logger.info(f"Find user on server: {r['name']}")
             return r['name']
         else:
             logger.info(f"User {telegram_id} not found on server")
-            return None
+            return 'К сожалению, я тебя не нашёл на сервере🤔'
