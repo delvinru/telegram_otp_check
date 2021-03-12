@@ -22,16 +22,19 @@ class RemoteServer:
         }
         self.login = REMOTE_SERVER_LOGIN
         self.password = REMOTE_SERVER_PASSWORD
+
         self.session = requests.Session()
         self.session_url = self.url + "session"
         self.telegram_url = self.url + "telegram"
+
         self.init_session = False
     
-    def __init_session(self):
+    def _init_session(self):
         data = json.dumps({
             "login" : self.login,
             "password" : self.password
         })
+
         try:
             r = self.session.post(self.session_url, headers=self.header, data=data).json()
         except:
@@ -42,38 +45,40 @@ class RemoteServer:
         self.time_of_death = r['time_of_death']
         self.init_session = True
     
-    def __extend_session(self):
-        new_url = self.session_url + self.secure_token
+    def _extend_session(self):
+        new_url = self.session_url + "/" + self.secure_token
         r = self.session.put(new_url, data={"accept":"application/json"}).json()
+
         self.secure_token = r['secure_token']
         self.time_of_death = r['time_of_death']
 
-    def __check_session(self):
+    def _check_session(self):
         """
         Check session for rest api user
         If session was not initialized or completed than extend session 
         """
 
         if not self.init_session:
-            self.__init_session()
+            self._init_session()
 
         server = dateutil.parser.isoparse(self.time_of_death)
-        tz = pytz.timezone('Europe/Paris')
+        tz = pytz.timezone('Europe/Moscow')
         now = datetime.now(tz).replace(tzinfo=None)
         offset = (now - server).seconds
+
         # Update token every 30 minute
         if offset > 1800:
-            self.__extend_session()
+            self._extend_session()
         # If session die renew
         elif offset > 3500:
-            self.__init_session()
+            self._init_session()
     
     def init_user(self, telegram_id=None, id_card=None):
         """
         Init user on remote server
         """
 
-        self.__check_session()
+        self._check_session()
 
         data = json.dumps({
             "secure_token" : self.secure_token,
@@ -82,6 +87,7 @@ class RemoteServer:
         })
 
         r = self.session.post(self.telegram_url, headers=self.header, data=data).json()
+
         if r['result']:
             logger.info(f"User init on server: {telegram_id} {id_card}")
             return True
@@ -94,7 +100,7 @@ class RemoteServer:
         Send data to remote server for mark user
         """
 
-        self.__check_session()
+        self._check_session()
 
         data = json.dumps({
             "secure_token" : self.secure_token,
@@ -116,7 +122,7 @@ class RemoteServer:
         Find user by telegram id on remote server
         """
 
-        self.__check_session()
+        self._check_session()
 
         data = json.dumps({
             "secure_token" : self.secure_token,
@@ -128,10 +134,11 @@ class RemoteServer:
 
         if r['result']:
             if not r.get('name'):
+                logger.info(f"User {telegram_id} not found on server")
                 return None
 
             logger.info(f"Find user on server: {r['name']}")
             return r['name']
         else:
-            logger.info(f"User {telegram_id} not found on server")
+            logger.info(f"Internal server error: {r}")
             return None
