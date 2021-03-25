@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from urllib.error import HTTPError
 
 import dateutil.parser
 import pytz
@@ -47,7 +48,11 @@ class RemoteServer:
     
     def _extend_session(self):
         new_url = self.session_url + "/" + self.secure_token
-        r = self.session.put(new_url, data={"accept":"application/json"}).json()
+        try:
+            r = self.session.put(new_url, data={"accept":"application/json"}).json()
+        except HTTPError:
+            logger.warning(f'Error on server side when extend session! I\'l try again!')
+            r = self.session.put(new_url, data={"accept":"application/json"}).json()
 
         self.secure_token = r['secure_token']
         self.time_of_death = r['time_of_death']
@@ -55,22 +60,22 @@ class RemoteServer:
     def _check_session(self):
         """
         Check session for rest api user
-        If session was not initialized or completed than extend session 
+        If session was not initialized/completed than extend/init session 
         """
 
         if not self.init_session:
             self._init_session()
 
         server = dateutil.parser.isoparse(self.time_of_death)
-        tz = pytz.timezone('Europe/Moscow')
+        tz = pytz.timezone('Europe/Paris')
         now = datetime.now(tz).replace(tzinfo=None)
         offset = (now - server).seconds
 
         # Update token every 30 minute
-        if offset > 1800:
+        if offset > 1800 and offset < 3500:
             self._extend_session()
         # If session die renew
-        elif offset > 3500:
+        elif offset >= 3500:
             self._init_session()
     
     def init_user(self, telegram_id=None, id_card=None):
@@ -111,7 +116,6 @@ class RemoteServer:
         r = self.session.put(self.telegram_url, headers=self.header, data=data).json()
 
         if r['result']:
-            logger.info(f"User marked in server: {telegram_id}")
             return True
         else: 
             logger.warning(f"User not marked in server. Error: {r}")

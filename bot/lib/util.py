@@ -114,15 +114,25 @@ def start(update: Update, cx: CallbackContext):
         return END
     else:
         user_id = update.message.from_user.id
-
-        user = r_server.search_user(user_id)
-
         cx.user_data["uid"] = user_id
+
+        new_user = False
+        cached_user = ''
+
+        if not cx.user_data.get('login'):
+            user = r_server.search_user(user_id)
+            if user is None:
+                new_user = True
+            else:
+                cached_user = user 
+        
+        if cached_user != '':
+            cx.user_data['login'] = cached_user
+
         # If new user was detected
-        if user is None:
+        if new_user:
             keyboard = [
-                [InlineKeyboardButton(
-                    'Зарегистрироваться', callback_data=str(REGISTRATION_USER))],
+                [InlineKeyboardButton('Зарегистрироваться', callback_data=str(REGISTRATION_USER))],
             ]
             text =  "Привет, это бот для учёта посещаемости студентов на парах.\n"
             text += "Вводите логин, который вы указываете на сайте https://git.bk252.ru/.\n"
@@ -142,16 +152,14 @@ def start(update: Update, cx: CallbackContext):
 
             return REGISTRATION
         else:
-            text = f'Привет, {user}!\n'
-            update.message.reply_text(text=text)
+            text = f'Привет, {cx.user_data["login"]}!\n'
 
-            # Put info in context menu
-            cx.user_data['login'] = user
+            update.message.reply_text(text=text)
 
             try:
                 data = update.message.text
             except:
-                # if code not provided in /start than just end conversation or other shit
+                # if code not provided in /start than just end conversation
                 return END
 
             code = data.removeprefix('/start ')
@@ -261,10 +269,14 @@ def register_user(update: Update, cx: CallbackContext):
         return show_data(update, cx)
 
     # Init user on server
-    r_server.init_user(
+    res = r_server.init_user(
         cx.user_data['uid'],
         cx.user_data['login']
     )
+
+    if not res:
+        update.message.reply_text('Извини, но я не могу опознать тебя на сервере🤔')
+        return END
 
     logger.info(f'User {cx.user_data["uid"]} {cx.user_data["username"]} was registered')
 
@@ -297,7 +309,14 @@ def check_otp_code(update: Update, cx: CallbackContext, code: str):
     global otp_code
     if code == otp_code:
         # mark user in database
-        r_server.mark_user(cx.user_data['uid'])
+        res = r_server.mark_user(cx.user_data['uid'])
+
+        if not res:
+            cx.bot.send_message(
+                chat_id=update.message.chat.id,
+                text='Кажется на сервере произошла ошибка, попробуй снова!'
+            )
+            return END
 
         logger.info(
             f'{cx.user_data["uid"]} {cx.user_data["login"]} was marked on server'
