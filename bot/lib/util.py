@@ -275,7 +275,11 @@ def register_user(update: Update, cx: CallbackContext):
     )
 
     if not res:
-        update.message.reply_text('Извини, но я не могу опознать тебя на сервере🤔')
+        update.callback_query.answer()
+        update.callback_query.edit_message_text(text='Извини, но я не могу опознать тебя на сервере🤔\nПопробуй снова отправив /start')
+        cx.user_data.pop('login')
+        cx.user_data.pop(START_OVER)
+        cx.user_data['bad_login'] = True
         return END
 
     logger.info(f'User {cx.user_data["uid"]} {cx.user_data["username"]} was registered')
@@ -314,7 +318,7 @@ def check_otp_code(update: Update, cx: CallbackContext, code: str):
         if not res:
             cx.bot.send_message(
                 chat_id=update.message.chat.id,
-                text='Кажется на сервере произошла ошибка, попробуй снова!'
+                text='Упс, кажется, ты где-то накосячил! Я не смог тебя отметить на паре😉'
             )
             return END
 
@@ -332,18 +336,24 @@ def check_otp_code(update: Update, cx: CallbackContext, code: str):
     else:
         cx.user_data['otp_try'] += 1
 
-        logger.warning(
-            f'{cx.user_data["uid"]} {cx.user_data["login"]} try incorrect password'
-        )
-
         if cx.user_data['otp_try'] >= 3:
             logger.error(
                 f'{cx.user_data["uid"]} {cx.user_data["login"]} entered the password incorrectly more than 3 times.'
             )
+        else:
+            logger.warning(
+                f'{cx.user_data["uid"]} {cx.user_data["login"]} try incorrect password'
+            )
+
+        bad_messages = [
+            'Друг, а ты точно на паре?👿',
+            'Самая быстрая рука на диком западе? Точно нет😉',
+            'Короче, Меченый, я тебя спас и в благородство играть не буду: отметишься на паре — и мы в расчете.'
+        ]
 
         cx.bot.send_message(
             chat_id=update.message.chat.id,
-            text='Друг, а ты точно на паре?👿'
+            text=choice(bad_messages)
         )
 
         return END

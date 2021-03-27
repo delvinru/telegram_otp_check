@@ -92,6 +92,7 @@ class RemoteServer:
         })
 
         r = self.session.post(self.telegram_url, headers=self.header, data=data).json()
+        logger.info(f'Init user: {r}')
 
         if r['result']:
             logger.info(f"User init on server: {telegram_id} {id_card}")
@@ -114,6 +115,7 @@ class RemoteServer:
         })
 
         r = self.session.put(self.telegram_url, headers=self.header, data=data).json()
+        logger.info(f'Mark user: {r}')
 
         if r['result']:
             return True
@@ -135,6 +137,7 @@ class RemoteServer:
         })
 
         r = self.session.put(self.telegram_url, headers=self.header, data=data).json()
+        logger.info(f'Search user: {r}')
 
         if r['result']:
             if not r.get('name'):
