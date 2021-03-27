@@ -7,11 +7,8 @@ import pytz
 import requests
 from loguru import logger
 
-from lib.settings import (
-    REMOTE_SERVER, 
-    REMOTE_SERVER_LOGIN,
-    REMOTE_SERVER_PASSWORD
-)
+from lib.settings import (REMOTE_SERVER, REMOTE_SERVER_LOGIN,
+                          REMOTE_SERVER_PASSWORD)
 
 
 class RemoteServer:

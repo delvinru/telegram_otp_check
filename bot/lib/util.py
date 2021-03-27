@@ -279,7 +279,6 @@ def register_user(update: Update, cx: CallbackContext):
         update.callback_query.edit_message_text(text='Извини, но я не могу опознать тебя на сервере🤔\nПопробуй снова отправив /start')
         cx.user_data.pop('login')
         cx.user_data.pop(START_OVER)
-        cx.user_data['bad_login'] = True
         return END
 
     logger.info(f'User {cx.user_data["uid"]} {cx.user_data["username"]} was registered')
