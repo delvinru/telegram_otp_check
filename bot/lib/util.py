@@ -10,7 +10,8 @@ from telegram import (
     InlineKeyboardMarkup,
     KeyboardButton, 
     ReplyKeyboardMarkup, 
-    Update
+    Update,
+    ParseMode
 )
 
 from telegram.ext import (
@@ -31,7 +32,7 @@ SELECTING_FEATURE, TYPING = map(chr, range(6, 8))
 CHECK_OTP = chr(20)
 
 # Meta state
-STOPPING = map(chr, range(4, 5))
+STARTING = map(chr, range(4, 5))
 # Shortcut for ConversationHandler.END
 END = ConversationHandler.END
 
@@ -109,7 +110,8 @@ def start(update: Update, cx: CallbackContext):
 
         code = data.removeprefix('/start ')
         if code != '/start':
-            check_otp_code(update, cx, code)
+            res = check_otp_code(update, cx, code)
+            return res
 
         return END
     else:
@@ -164,7 +166,8 @@ def start(update: Update, cx: CallbackContext):
 
             code = data.removeprefix('/start ')
             if code != '/start':
-                check_otp_code(update, cx, code)
+                res = check_otp_code(update, cx, code)
+                return res
 
             return END
 
@@ -301,6 +304,21 @@ def stop_check(update: Update, cx: CallbackContext):
     update.message.reply_text('Хорошо, пока!')
     return END
 
+def check_request_location(update: Update, cx: CallbackContext):
+    buttons = [[KeyboardButton('Отправить геопозицию 📍', request_location=True)]]
+    keyboard = ReplyKeyboardMarkup(buttons, one_time_keyboard=True, resize_keyboard=True)
+
+    text = 'Отправьте свою геопозицию, чтобы быть отмеченным на паре!'
+    update.message.reply_text(text, reply_markup=keyboard, parse_mode='Markdown')
+    return LOCATION
+
+def check_location(update: Update, cx: CallbackContext):
+    user_lon = update.message.location.longitude
+    user_lat = update.message.location.latitude
+    cx.user_data['location'] = [user_lon, user_lat]
+    cx.bot.send_message(chat_id=update.message.chat.id, text='Хорошо, я получил твою геопозицию😉\nОтсканируй QR код снова.')
+    logger.info(f'Got location of {cx.user_data["login"]}: {cx.user_data["location"]}')
+    return STARTING
 
 def check_otp_code(update: Update, cx: CallbackContext, code: str):
     """Functions check OTP code input by user and if correct mark him in DB"""
@@ -309,10 +327,20 @@ def check_otp_code(update: Update, cx: CallbackContext, code: str):
     if not cx.user_data.get('otp_try'):
         cx.user_data['otp_try'] = 0
 
+    # Check geoposition input
+    if not cx.user_data.get('location'):
+        # Lontitude, latitude
+        cx.user_data['location'] = [None, None]
+    
+    geo = cx.user_data['location']
+    if geo[0] == None or geo[1] == None:
+        check_request_location(update, cx)
+        return LOCATION
+
     global otp_code
     if code == otp_code:
         # mark user in database
-        res = r_server.mark_user(cx.user_data['uid'])
+        res = r_server.mark_user(cx.user_data['uid'], cx.user_data['location'])
 
         if not res:
             cx.bot.send_message(
@@ -331,6 +359,9 @@ def check_otp_code(update: Update, cx: CallbackContext, code: str):
             text='Поздравляю, ты отмечен на паре!☺️'
         )
 
+        # Reset location for new check
+        cx.user_data['location'] = [None, None]
+
         return END
     else:
         cx.user_data['otp_try'] += 1
@@ -345,9 +376,13 @@ def check_otp_code(update: Update, cx: CallbackContext, code: str):
             )
 
         bad_messages = [
-            'Друг, а ты точно на паре?👿',
-            'Самая быстрая рука на диком западе? Точно нет😉',
-            'Короче, Меченый, я тебя спас и в благородство играть не буду: отметишься на паре — и мы в расчете.'
+            'Самая быстрая рука на диком западе?\nТочно нет😉',
+            'Одна ошибка и ты ошибся🐒\nПробуй снова',
+            'Тренируй скорость👻\nКакие же человеки медленные...',
+            'Короче, Меченый, тут обман не приветствуется!\n'
+            'Не знаю зачем ты хочешь отметиться, но я в чужие дела не лезу, хочешь отметиться, значит надо...\n'
+            'Пытайся снова!',
+            'Ты не успел, давай по новой😉'
         ]
 
         cx.bot.send_message(

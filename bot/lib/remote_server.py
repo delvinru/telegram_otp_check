@@ -64,7 +64,7 @@ class RemoteServer:
             self._init_session()
 
         server = dateutil.parser.isoparse(self.time_of_death)
-        tz = pytz.timezone('Europe/Paris')
+        tz = pytz.timezone('Europe/Moscow')
         now = datetime.now(tz).replace(tzinfo=None)
         offset = (now - server).seconds
 
@@ -98,7 +98,7 @@ class RemoteServer:
             logger.warning(f"User not init on server: {r}")
             return False
         
-    def mark_user(self, telegram_id=None):
+    def mark_user(self, telegram_id = None, location=None):
         """
         Send data to remote server for mark user
         """
@@ -108,7 +108,9 @@ class RemoteServer:
         data = json.dumps({
             "secure_token" : self.secure_token,
             "telegram_id" : telegram_id,
-            "simulate" : False
+            "simulate" : False,
+            "longitude" : location[0],
+            "latitude" : location[1]
         })
 
         r = self.session.put(self.telegram_url, headers=self.header, data=data).json()

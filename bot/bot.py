@@ -47,16 +47,16 @@ def main():
             CommandHandler('stop', stop_reg)
         ],
         map_to_parent={
-            END: STOPPING
+            END: STARTING
         },
     )
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            REGISTRATION: [start_reg],
             CHECK_OTP: [MessageHandler(Filters.text & ~Filters.command, check_otp_code)],
-            STOPPING: [CommandHandler('start', start)]
+            LOCATION: [MessageHandler(Filters.location, check_location)],
+            STARTING: [CommandHandler('start', start)]
         },
         fallbacks=[CommandHandler('stop', stop)]
     )
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     logger.add(sys.__stdout__)
 
     if TOKEN is None:
-        logger.error("export TOKEN_CHECKER_OS in environment")
+        logger.error("export OTP_CHECK_TOKEN in environment")
         exit(0)
 
     main()
